@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import assistantsService from "@/api/assistantsService";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
 import TextareaAutosize from "react-textarea-autosize";
 import { Button } from "../ui/button";
 import RenderMessages from "./Children/RenderMessages";
@@ -8,24 +10,67 @@ export type Message = { role: "user" | "assistant"; content: string };
 
 interface ChatPageProps {}
 const ChatPage: React.FC<ChatPageProps> = ({}) => {
+  const [messages, setMessages] = useState<Message[]>([]);
   const [text, setText] = useState("");
-  const handleSend = (text: string) => {
-    if (text.trim() === "") return;
-    console.log(text);
-    setText("");
+  const searchParams = useSearchParams();
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const threadId = searchParams.get("threadId");
+  const router = useRouter();
+  const openNewThread = useCallback(async () => {
+    const { threadId } = await assistantsService.createThread();
+    router.push("/chat?threadId=" + threadId);
+  }, [router]);
+  const fetchMessages = useCallback(async () => {
+    if (!threadId) return;
+    const messages = await assistantsService.getMessages({ threadId });
+    setMessages(messages);
+  }, [threadId]);
+
+  useEffect(() => {
+    if (!threadId) {
+      // create thread
+      openNewThread();
+    }
+  }, [openNewThread, threadId]);
+
+  useEffect(() => {
+    fetchMessages();
+  }, [fetchMessages]);
+
+  const scrollToBottom = () => {
+    const scrollContainer = scrollContainerRef.current;
+    if (scrollContainer) {
+      scrollContainer.scrollTo({
+        top: scrollContainer.scrollHeight - scrollContainer.clientHeight,
+      });
+    }
   };
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const handleSend = async (text: string) => {
+    if (!threadId) return;
+    if (text.trim() === "") return;
+    const assistantId = "asst_ATGle2mpWIP1sbpF0LQcr6g0";
+    const userMessage = text;
+    setText("");
+    setMessages((prev) => [...prev, { role: "user", content: text }]);
+    const { content } = await assistantsService.chat({
+      threadId,
+      assistantId,
+      userMessage,
+    });
+    setMessages((prev) => [...prev, { role: "assistant", content }]);
+  };
+
   return (
     <div className="flex">
       <div className="bg-[#171717] w-[300px] h-screen"></div>
       <div className="bg-[#212121] flex-1 h-screen px-[100px] py-[20px] flex flex-col">
-        <div className="flex-1">
+        <div className="flex-1 overflow-scroll" ref={scrollContainerRef}>
           <div className="h-[30px]"></div>
-          <RenderMessages
-            messages={[
-              { role: "user", content: "hii" },
-              { role: "assistant", content: "How can I assist you today?" },
-            ]}
-          />
+          <RenderMessages messages={messages} />
           <div className="h-[30px]"></div>
         </div>
         <form
