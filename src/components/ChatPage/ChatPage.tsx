@@ -1,6 +1,7 @@
 "use client";
 
 import assistantsService from "@/api/assistantsService";
+import { buildQuery } from "@/lib/utils";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import TextareaAutosize from "react-textarea-autosize";
@@ -15,11 +16,14 @@ const ChatPage: React.FC<ChatPageProps> = ({}) => {
   const searchParams = useSearchParams();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const threadId = searchParams.get("threadId");
+  const assistantId = searchParams.get("assistantId");
   const router = useRouter();
   const openNewThread = useCallback(async () => {
     const { threadId } = await assistantsService.createThread();
-    router.push("/chat?threadId=" + threadId);
-  }, [router]);
+    if (assistantId) {
+      router.push(`/chat?${buildQuery({ assistantId, threadId })}`);
+    }
+  }, [assistantId, router]);
   const fetchMessages = useCallback(async () => {
     if (!threadId) return;
     const messages = await assistantsService.getMessages({ threadId });
@@ -50,9 +54,9 @@ const ChatPage: React.FC<ChatPageProps> = ({}) => {
   }, [messages]);
 
   const handleSend = async (text: string) => {
-    if (!threadId) return;
+    if (!threadId || !assistantId)
+      throw new Error("threadId or assistantId is missing");
     if (text.trim() === "") return;
-    const assistantId = "asst_ATGle2mpWIP1sbpF0LQcr6g0";
     const userMessage = text;
     setText("");
     setMessages((prev) => [...prev, { role: "user", content: text }]);
@@ -64,44 +68,53 @@ const ChatPage: React.FC<ChatPageProps> = ({}) => {
     setMessages((prev) => [...prev, { role: "assistant", content }]);
   };
 
+  if (!assistantId) {
+    return <div>Assistant Id should be present in query</div>;
+  }
+
   return (
     <div className="flex">
       <div className="bg-[#171717] w-[300px] h-screen"></div>
-      <div className="bg-[#212121] flex-1 h-screen px-[100px] py-[20px] flex flex-col">
-        <div className="flex-1 overflow-scroll" ref={scrollContainerRef}>
+      <div className="bg-[#212121] flex-1 h-screen py-[20px] flex flex-col">
+        <div
+          className="flex-1 overflow-auto px-[100px]"
+          ref={scrollContainerRef}
+        >
           <div className="h-[30px]"></div>
           <RenderMessages messages={messages} />
           <div className="h-[30px]"></div>
         </div>
-        <form
-          className="relative flex"
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSend(text);
-          }}
-        >
-          <TextareaAutosize
-            minRows={1}
-            maxRows={6}
-            value={text}
-            onChange={(e) => {
-              setText(e.target.value);
+        <div className="px-[100px]">
+          <form
+            className="relative flex"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSend(text);
             }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSend(text);
-              }
-            }}
-            placeholder="Message"
-            className="w-full resize-none border border-gray-400 focus:outline-none rounded-xl py-[15px] pl-6"
-          />
-          <div className="absolute bottom-2 right-2">
-            <Button className="p-0 aspect-square rounded-lg" type="submit">
-              <UpArrow />
-            </Button>
-          </div>
-        </form>
+          >
+            <TextareaAutosize
+              minRows={1}
+              maxRows={6}
+              value={text}
+              onChange={(e) => {
+                setText(e.target.value);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend(text);
+                }
+              }}
+              placeholder="Message"
+              className="w-full resize-none border border-gray-400 focus:outline-none rounded-xl py-[15px] pl-6"
+            />
+            <div className="absolute bottom-2 right-2">
+              <Button className="p-0 aspect-square rounded-lg" type="submit">
+                <UpArrow />
+              </Button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

@@ -45,10 +45,13 @@ const tickIcon = html`
 const copyCodeHtml = html` <span> ${copyIcon}</span> <span>Copy code</span> `;
 const copiedHtml = html` <span> ${tickIcon}</span> <span>Copied!</span> `;
 // @ts-ignore
-renderer.code = (_code, infostring, escaped) => {
-  const language = infostring!.split("&")[0];
-  const code = _code.replaceAll("&nbsp;", "");
-  return html`<div class="whitespace-normal rounded-lg overflow-hidden">
+renderer.code = (_code) => {
+  const language = _code.lang?.split("&")[0];
+  if (!language) {
+    return _code.text;
+  }
+  const code = _code.text;
+  return html`<div class="whitespace-normal rounded-lg overflow-hidden mb-4">
     <div
       class="bg-[#2F2F2F] flex justify-between items-center text-xs py-2 px-4"
     >
@@ -105,9 +108,9 @@ const RenderMessages: React.FC<RenderMessagesProps> = ({ messages }) => {
               </p>
               <div className="mt-1">
                 <div
-                  className="whitespace-pre-line"
+                  className="whitespace-pre-wrap"
                   dangerouslySetInnerHTML={{
-                    __html: marked(item.content.replaceAll("\n", "&nbsp;\n"), {
+                    __html: marked(item.content, {
                       renderer: renderer,
                     }),
                   }}
