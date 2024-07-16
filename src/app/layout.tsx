@@ -1,4 +1,5 @@
 import { ThemeProvider } from "@/components/theme-provider";
+import "highlight.js/styles/vs2015.css";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";

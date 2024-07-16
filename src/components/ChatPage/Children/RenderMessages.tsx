@@ -62,9 +62,11 @@ renderer.code = (_code) => {
       </button>
     </div>
     <div class="bg-[#0D0D0D] p-4 text-sm">
-      <pre><code>${hljs.highlight(code, {
-        language: language,
-      }).value}</code></pre>
+      <code class="whitespace-pre-wrap"
+        >${hljs.highlight(code, {
+          language: language,
+        }).value}</code
+      >
     </div>
   </div>`;
 };
