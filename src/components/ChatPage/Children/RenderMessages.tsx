@@ -42,9 +42,10 @@ const tickIcon = html`
     />
   </svg>
 `;
+
 const copyCodeHtml = html` <span> ${copyIcon}</span> <span>Copy code</span> `;
 const copiedHtml = html` <span> ${tickIcon}</span> <span>Copied!</span> `;
-// @ts-ignore
+
 renderer.code = (_code) => {
   const language = _code.lang?.split("&")[0];
   if (!language) {
