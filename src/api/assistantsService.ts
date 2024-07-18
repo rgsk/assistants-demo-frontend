@@ -23,6 +23,27 @@ const assistantsService = {
     const result = await axiosInstance.post<{ content: string }>(`/chat`, body);
     return result.data;
   },
+
+  getChatStreamReader: async (body: {
+    threadId: string;
+    assistantId: string;
+    userMessage: string;
+  }) => {
+    const url = `${environmentVars.ASSISTANTS_SERVER}/chat-stream`;
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+    return response.body!.getReader();
+  },
 };
 
 export default assistantsService;

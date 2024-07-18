@@ -8,7 +8,9 @@ import TextareaAutosize from "react-textarea-autosize";
 import { Button } from "../ui/button";
 import RenderMessages from "./Children/RenderMessages";
 export type Message = { role: "user" | "assistant"; content: string };
-
+export function uint8ArrayToString(uint8Array: Uint8Array) {
+  return new TextDecoder().decode(uint8Array);
+}
 interface ChatPageProps {}
 const ChatPage: React.FC<ChatPageProps> = ({}) => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -60,12 +62,37 @@ const ChatPage: React.FC<ChatPageProps> = ({}) => {
     const userMessage = text;
     setText("");
     setMessages((prev) => [...prev, { role: "user", content: text }]);
-    const { content } = await assistantsService.chat({
+    const reader = await assistantsService.getChatStreamReader({
       threadId,
       assistantId,
       userMessage,
     });
-    setMessages((prev) => [...prev, { role: "assistant", content }]);
+    const readStream = () => {
+      reader.read().then(({ done, value: entireChunk }) => {
+        if (done) {
+          return;
+        }
+        if (entireChunk) {
+          const stringValue = uint8ArrayToString(entireChunk);
+          setMessages((prev) => {
+            const lastMessage = prev[prev.length - 1];
+            if (lastMessage && lastMessage.role === "assistant") {
+              return [
+                ...prev.slice(0, prev.length - 1),
+                {
+                  role: "assistant",
+                  content: lastMessage.content + stringValue,
+                },
+              ];
+            }
+            return [...prev, { role: "assistant", content: stringValue }];
+          });
+        }
+        readStream();
+      });
+    };
+
+    readStream();
   };
 
   if (!assistantId) {
