@@ -29,7 +29,7 @@ const assistantsService = {
     assistantId: string;
     userMessage: string;
   }) => {
-    const url = `${environmentVars.ASSISTANTS_SERVER}/chat-stream`;
+    const url = `${environmentVars.ASSISTANTS_SERVER}/chat-stream-fn-calling`;
 
     const response = await fetch(url, {
       method: "POST",
